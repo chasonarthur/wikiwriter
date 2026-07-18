@@ -2,6 +2,7 @@ name: Fetch Zosimus public-domain source
 
 on:
   push:
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -54,7 +55,13 @@ jobs:
           (out/'SOURCE_ACQUISITION_REPORT.json').write_text(json.dumps({'source_url':url,'ia_id':ia,'books':stats,'complete_words':len(complete.split())},indent=2),encoding='utf-8')
           print(json.dumps(stats,indent=2))
           PY
-      - name: Commit fetched source
+      - name: Upload source artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zosimus-source
+          path: zosimus-source
+      - name: Commit fetched source on push/manual runs
+        if: github.event_name != 'pull_request'
         run: |
           git config user.name 'Zyel Source Bot'
           git config user.email 'source-bot@zyel.io'
