@@ -34,56 +34,68 @@
       {
         "url": "https://tianmu.org/good-work-library/scythian/greek-and-roman-sources/zosimus-new-history-complete-archival-english-text",
         "status": 200,
-        "bytes": 963692,
-        "content_type": "text/html"
+        "content_type": "text/html",
+        "content_length": null
       },
       {
         "url": "https://www.tertullian.org/fathers/zosimus01_book1.htm",
         "status": 200,
-        "bytes": 84262,
-        "content_type": "text/html"
+        "content_type": "text/html",
+        "content_length": "84262"
       },
       {
         "url": "https://www.tertullian.org/fathers/zosimus02_book2.htm",
         "status": 200,
-        "bytes": 87628,
-        "content_type": "text/html"
+        "content_type": "text/html",
+        "content_length": "87628"
       },
       {
         "url": "https://www.tertullian.org/fathers/zosimus03_book3.htm",
         "status": 200,
-        "bytes": 76627,
-        "content_type": "text/html"
+        "content_type": "text/html",
+        "content_length": "76627"
       },
       {
         "url": "https://www.tertullian.org/fathers/zosimus04_book4.htm",
         "status": 200,
-        "bytes": 108172,
-        "content_type": "text/html"
+        "content_type": "text/html",
+        "content_length": "108172"
       },
       {
         "url": "https://www.tertullian.org/fathers/zosimus05_book5.htm",
         "status": 200,
-        "bytes": 111429,
-        "content_type": "text/html"
+        "content_type": "text/html",
+        "content_length": "111429"
       },
       {
         "url": "https://www.tertullian.org/fathers/zosimus06_book6.htm",
         "status": 200,
-        "bytes": 22912,
-        "content_type": "text/html"
+        "content_type": "text/html",
+        "content_length": "22912"
       },
       {
         "url": "https://archive.org/metadata/historyofcountzo00zosiuoft",
         "status": 200,
-        "bytes": 92818,
-        "content_type": "application/json"
+        "content_type": "application/json",
+        "content_length": null
       },
       {
         "url": "https://archive.org/download/historyofcountzo00zosiuoft/historyofcountzo00zosiuoft_djvu.txt",
         "status": 200,
-        "bytes": 1317593,
-        "content_type": "text/plain; charset=utf-8"
+        "content_type": "text/plain; charset=utf-8",
+        "content_length": "1317593"
+      },
+      {
+        "url": "https://archive.org/download/historyofcountzo00zosiuoft/historyofcountzo00zosiuoft.pdf",
+        "status": 200,
+        "content_type": "application/pdf",
+        "content_length": "51088031"
+      },
+      {
+        "url": "https://archive.org/download/historyofcountzo00zosiuoft/historyofcountzo00zosiuoft.epub",
+        "status": 200,
+        "content_type": "application/epub+zip",
+        "content_length": "3580948"
       }
     ]
   }
