@@ -21,7 +21,7 @@ jobs:
           python -m pip install --quiet requests beautifulsoup4 lxml
           python - <<'PY'
           from pathlib import Path
-          import json, re, requests, traceback
+          import json, re, requests
           from bs4 import BeautifulSoup
 
           out=Path('zosimus-source'); out.mkdir(exist_ok=True)
@@ -30,11 +30,13 @@ jobs:
 
           def fetch(url,name,timeout=120):
               try:
-                  r=requests.get(url,headers=headers,timeout=timeout)
-                  debug['attempts'].append({'url':url,'status':r.status_code,'bytes':len(r.content),'content_type':r.headers.get('content-type')})
-                  (out/name).write_bytes(r.content)
-                  r.raise_for_status()
-                  return r
+                  with requests.get(url,headers=headers,timeout=timeout,stream=True) as r:
+                      debug['attempts'].append({'url':url,'status':r.status_code,'content_type':r.headers.get('content-type'),'content_length':r.headers.get('content-length')})
+                      r.raise_for_status()
+                      with open(out/name,'wb') as f:
+                          for chunk in r.iter_content(1024*1024):
+                              if chunk: f.write(chunk)
+                  return out/name
               except Exception as e:
                   debug['attempts'].append({'url':url,'error':repr(e)})
                   return None
@@ -42,13 +44,10 @@ jobs:
           books={str(i):[] for i in range(1,7)}
           source_used=None
 
-          # First choice: the clean complete archival transcription.
           tianmu='https://tianmu.org/good-work-library/scythian/greek-and-roman-sources/zosimus-new-history-complete-archival-english-text'
-          r=fetch(tianmu,'tianmu-page.html')
-          if r is None:
-              r=fetch('https://r.jina.ai/http://tianmu.org/good-work-library/scythian/greek-and-roman-sources/zosimus-new-history-complete-archival-english-text','tianmu-jina.txt')
-          if r is not None:
-              soup=BeautifulSoup(r.text,'lxml')
+          page=fetch(tianmu,'tianmu-page.html')
+          if page:
+              soup=BeautifulSoup(page.read_text(encoding='utf-8',errors='replace'),'lxml')
               article=soup.find('article') or soup.find('main') or soup
               start=article.find(lambda tag: tag.name in ['h2','h3'] and re.fullmatch(r'Book\s*1',tag.get_text(' ',strip=True),re.I))
               if start:
@@ -60,30 +59,24 @@ jobs:
                       if re.fullmatch(r'Colophon',text,re.I): break
                       if current and el.name in ['p','blockquote','li'] and text:
                           books[current].append(text)
-                  if all(len(' '.join(v).split())>500 for v in books.values()):
-                      source_used='tianmu'
+                  if all(len(' '.join(v).split())>500 for v in books.values()): source_used='tianmu'
 
-          # Fallback: Roger Pearse's six public-domain transcription pages.
           if source_used is None:
               books={str(i):[] for i in range(1,7)}
               for n in range(1,7):
                   url=f'https://www.tertullian.org/fathers/zosimus0{n}_book{n}.htm'
-                  rr=fetch(url,f'tertullian-book-{n}.html')
-                  if rr is None:
-                      continue
-                  ss=BeautifulSoup(rr.text,'lxml')
+                  pp=fetch(url,f'tertullian-book-{n}.html')
+                  if not pp: continue
+                  ss=BeautifulSoup(pp.read_text(encoding='utf-8',errors='replace'),'lxml')
                   body=ss.find('body') or ss
                   for bad in body.find_all(['script','style','nav','header','footer']): bad.decompose()
-                  # Start after the BOOK heading where possible; stop at navigation/editorial footer.
                   start=body.find(lambda tag: tag.name in ['h1','h2','h3','center','b'] and re.search(rf'BOOK\s*(THE\s*)?(FIRST|SECOND|THIRD|FOURTH|FIFTH|SIXTH|{n})',tag.get_text(' ',strip=True),re.I))
                   scope=start.find_all_next(['p','blockquote']) if start else body.find_all(['p','blockquote'])
                   ps=[]
                   for p in scope:
-                      text=re.sub(r'\s+',' ',p.get_text(' ',strip=True)).strip()
-                      low=text.lower()
+                      text=re.sub(r'\s+',' ',p.get_text(' ',strip=True)).strip(); low=text.lower()
                       if not text: continue
-                      if any(low.startswith(x) for x in ['return to','zosimus index','book index','site navigation','this text was transcribed']):
-                          continue
+                      if any(low.startswith(x) for x in ['return to','zosimus index','book index','site navigation','this text was transcribed']): continue
                       if 'tertullian.org' in low and len(text)<250: continue
                       ps.append(text)
                   books[str(n)]=ps
@@ -97,16 +90,16 @@ jobs:
           complete='\n\n'.join(f'BOOK {n}\n\n'+(out/f'book-{n}.txt').read_text(encoding='utf-8').strip() for n in books)+'\n'
           (out/'zosimus-complete-1814.txt').write_text(complete,encoding='utf-8')
 
-          # Internet Archive scan lineage and OCR.
           ia='historyofcountzo00zosiuoft'
-          meta=fetch(f'https://archive.org/metadata/{ia}','internet-archive-metadata.json')
-          ocr=fetch(f'https://archive.org/download/{ia}/{ia}_djvu.txt','internet-archive-djvu.txt',180)
+          fetch(f'https://archive.org/metadata/{ia}','internet-archive-metadata.json')
+          fetch(f'https://archive.org/download/{ia}/{ia}_djvu.txt','internet-archive-djvu.txt',180)
+          fetch(f'https://archive.org/download/{ia}/{ia}.pdf','historyofcountzo00zosiuoft.pdf',300)
+          fetch(f'https://archive.org/download/{ia}/{ia}.epub','historyofcountzo00zosiuoft.epub',180)
 
           report={'source_used':source_used,'source_url':tianmu,'ia_id':ia,'books':stats,'complete_words':len(complete.split()),'debug':debug}
           (out/'SOURCE_ACQUISITION_REPORT.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
           print(json.dumps(report,indent=2))
-          if source_used is None:
-              raise RuntimeError('No complete six-book source extraction succeeded; see source artifact diagnostics.')
+          if source_used is None: raise RuntimeError('No complete six-book source extraction succeeded.')
           PY
       - name: Upload source artifact
         if: always()
@@ -114,11 +107,12 @@ jobs:
         with:
           name: zosimus-source
           path: zosimus-source
-      - name: Commit fetched source on push/manual runs
+          compression-level: 6
+      - name: Commit fetched text source on push/manual runs
         if: github.event_name != 'pull_request' && success()
         run: |
           git config user.name 'Zyel Source Bot'
           git config user.email 'source-bot@zyel.io'
-          git add zosimus-source
+          git add zosimus-source/*.txt zosimus-source/*.json zosimus-source/*.html zosimus-source/*.epub
           git commit -m 'Fetch Zosimus 1814 public-domain source' || exit 0
           git push
